@@ -1,18 +1,6 @@
 version: "3.8"
 
 services:
-  db:
-    image: postgres:15-alpine
-    container_name: liquor_db
-    environment:
-      POSTGRES_USER: admin_licores
-      POSTGRES_PASSWORD: password_seguro
-      POSTGRES_DB: liquor_store
-    ports:
-      - "5444:5432"
-    volumes:
-      - liquor_data:/var/lib/postgresql/data
-
   app:
     build:
       context: ..
@@ -21,12 +9,10 @@ services:
     ports:
       - "8502:8502"
       - "8000:8000"
-    depends_on:
-      - db
     env_file:
       - ../.env
     volumes:
       - ..:/app # Sincroniza tu código local con el contenedor (Hot Reload)
 
-volumes:
-  liquor_data:
+
+# Nota: Ya no necesitamos declarar 'volumes' globales porque eliminamos 'liquor_data'
