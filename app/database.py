@@ -1,24 +1,21 @@
+import os
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
 
-# NOTA: Usamos el puerto 5444 que es el que configuramos en Docker
-DATABASE_URL = "postgresql://admin_licores:password_seguro@localhost:5444/liquor_store"
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# El motor que habla con la base de datos
 engine = create_engine(DATABASE_URL)
-
-# La fábrica de conexiones
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def probar_conexion():
     try:
-        # Intentamos conectar
         connection = engine.connect()
-        print("\n✅ ¡CONEXIÓN EXITOSA! Python pudo entrar al Docker.")
-        print("El puente entre VS Code, Docker y PostgreSQL está funcionando.\n")
+        print("--- CONEXION EXITOSA ---")
+        print("Conectado a Supabase correctamente.")
         connection.close()
     except Exception as e:
-        print(f"\n❌ ERROR DE CONEXIÓN: {e}\n")
+        print("--- ERROR DE CONEXION ---")
+        print(e)
 
 if __name__ == "__main__":
     probar_conexion()
