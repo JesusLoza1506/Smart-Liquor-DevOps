@@ -1,3 +1,29 @@
-__pycache__/ 
-node_modules/ 
-.env 
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --- Variables de Entorno (SEGURIDAD) ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# --- Docker ---
+.docker/
+
+# --- Node (Por si acaso) ---
+node_modules/
+npm-debug.log*
+
+# --- OS ---
+.DS_Store
+Thumbs.db
