@@ -9,7 +9,7 @@ engine = create_engine(DATABASE_URL)
 def crear_producto_real():
     print("🚀 Insertando producto en la estructura real de Smart-Liquor...")
     
-    # Datos ajustados a tus columnas: nombre, marca, precio_venta, costo_compra, stock_actual, stock_minimo, alerta_roja
+    # Datos ajustados a tus columnas:: nombre, marca, precio_venta, costo_compra, stock_actual, stock_minimo, alerta_roja
     nuevo_producto = {
         "nombre": "Johnnie Walker Black Label",
         "marca": "Johnnie Walker",
