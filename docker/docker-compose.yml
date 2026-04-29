@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   db:
@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: password_seguro
       POSTGRES_DB: liquor_store
     ports:
-      - "5432:5432"
+      - "5444:5432"
     volumes:
       - liquor_data:/var/lib/postgresql/data
 
