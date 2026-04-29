@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: liquor_db
+    environment:
+      POSTGRES_USER: admin_licores
+      POSTGRES_PASSWORD: password_seguro
+      POSTGRES_DB: liquor_store
+    ports:
+      - "5432:5432"
+    volumes:
+      - liquor_data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: liquor_app
+    ports:
+      - "8502:8502"
+      - "8000:8000"
+    depends_on:
+      - db
+    env_file:
+      - ../.env
+    volumes:
+      - ..:/app # Sincroniza tu código local con el contenedor (Hot Reload)
+
+volumes:
+  liquor_data:
