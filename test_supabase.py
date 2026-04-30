@@ -2,7 +2,7 @@ import os
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 
-# 1. Cargar configuración
+# 1.- Cargar configuración
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
@@ -10,11 +10,11 @@ engine = create_engine(DATABASE_URL)
 def registrar_prueba():
     try:
         with engine.connect() as connection:
-            # 2. Intentamos crear una tabla de prueba rápida
+            # 2.- Intentamos crear una tabla de prueba rápida
             print("Creando tabla de auditoría...")
             connection.execute(text("CREATE TABLE IF NOT EXISTS prueba_conexion (id serial PRIMARY KEY, mensaje text, fecha timestamp DEFAULT now());"))
             
-            # 3. Insertamos un registro
+            # 3.- Insertamos un registro
             print("Insertando registro de éxito...")
             connection.execute(
                 text("INSERT INTO prueba_conexion (mensaje) VALUES (:msg)"),
