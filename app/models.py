@@ -1,11 +1,9 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.sql import func
-from app.database import engine # Ruta absoluta para evitar errores de parent package
+from app.database import engine 
 
 Base = declarative_base()
-
-# --- MODELOS ---
 
 class Producto(Base):
     __tablename__ = "productos"
@@ -18,7 +16,11 @@ class Producto(Base):
     stock_minimo = Column(Integer, default=10)
     alerta_roja = Column(Boolean, default=False)
     
-    # Relaciones
+    ### NUEVO: Propiedad para calcular valor de inventario rápido ###
+    @property
+    def valor_total_stock(self):
+        return self.precio_venta * self.stock_actual
+
     detalles = relationship("DetallePedido", back_populates="producto")
 
 class Cliente(Base):
@@ -29,7 +31,6 @@ class Cliente(Base):
     direccion_exacta = Column(String)
     referencia_ubicacion = Column(String)
     
-    # Relaciones
     pedidos = relationship("Pedido", back_populates="cliente")
 
 class Pedido(Base):
@@ -38,11 +39,11 @@ class Pedido(Base):
     cliente_id = Column(Integer, ForeignKey("clientes.id"))
     fecha_hora = Column(DateTime, server_default=func.now())
     total_pedido = Column(Float)
-    # Campos internos según tu diagrama de Supabase
-    estado_logistico = Column(String, default="recibido")
-    estado_pago = Column(String, default="sin pagar")
     
-    # Relaciones
+    # Estados actualizados para el Dashboard
+    estado_logistico = Column(String, default="recibido") # recibido, en ruta, entregado
+    estado_pago = Column(String, default="sin pagar")    # pagado, sin pagar
+    
     cliente = relationship("Cliente", back_populates="pedidos")
     items = relationship("DetallePedido", back_populates="pedido")
 
@@ -53,7 +54,7 @@ class DetallePedido(Base):
     producto_id = Column(Integer, ForeignKey("productos.id"))
     cantidad = Column(Integer)
     
-    # Relaciones
+    ### NUEVO: Relación cargada para ver qué producto se vendió en la tabla ###
     pedido = relationship("Pedido", back_populates="items")
     producto = relationship("Producto", back_populates="detalles")
 
@@ -64,6 +65,5 @@ class EntradaSuministro(Base):
     cantidad_ingresada = Column(Integer)
     fecha = Column(DateTime, server_default=func.now())
 
-# Crear todas las tablas en la base de datos (Supabase)
-# Esto asegura que la estructura en la nube sea idéntica a este código
+# Esto asegura que si tus compañeros borran la DB de Docker, se cree igualita
 Base.metadata.create_all(bind=engine)

@@ -1,78 +1,115 @@
 import flet as ft
-from app.database import engine 
 from sqlalchemy.orm import Session
-import app.crud as crud         
-import threading # Para cargar datos en segundo plano
+from app.database import engine
+import app.crud as crud
+import threading
+from datetime import datetime
 
 def main(page: ft.Page):
+    # --- CONFIGURACIÓN DE PÁGINA ---
     page.title = "Smart-Liquor DevOps - Dashboard"
     page.theme_mode = ft.ThemeMode.DARK
-    page.window_width = 900
-    page.window_height = 700
+    page.bgcolor = "#0f1113" # Fondo ultra oscuro como en la imagen
+    page.padding = 30
+    page.window_width = 1200
+    page.window_height = 850
+
+    # --- COMPONENTES DINÁMICOS ---
+    txt_estado = ft.Text("Sincronizando con base de datos...", color="amber", size=12)
     
-    # 1. Componentes visuales
-    txt_estado = ft.Text("Iniciando sistema...", color="amber")
-    prg_carga = ft.ProgressBar(width=400, color="amber", visible=True)
+    # Referencias para actualizar valores
+    val_ventas = ft.Text("S/ 0.00", size=32, weight="bold")
+    val_pedidos = ft.Text("0", size=32, weight="bold")
+    val_alertas = ft.Text("0", size=32, weight="bold")
+    val_ticket = ft.Text("S/ 0.00", size=32, weight="bold")
     
-    tabla_productos = ft.DataTable(
+    tabla_pedidos = ft.DataTable(
         columns=[
-            ft.DataColumn(ft.Text("Producto")),
-            ft.DataColumn(ft.Text("Stock")),
-            ft.DataColumn(ft.Text("Estado")),
+            ft.DataColumn(ft.Text("ID")),
+            ft.DataColumn(ft.Text("CLIENTE / PRODUCTO")),
+            ft.DataColumn(ft.Text("MONTO")),
+            ft.DataColumn(ft.Text("ESTADO")),
         ],
         rows=[]
     )
 
-    # 2. Función que corre en SEGUNDO PLANO
-    def hilo_carga_datos():
+    # --- LÓGICA DE CARGA REAL ---
+    def actualizar_dashboard():
         try:
             with Session(engine) as db:
-                productos = crud.obtener_productos(db)
-                tabla_productos.rows.clear()
-                for p in productos:
-                    icono = "warning" if p.alerta_roja else "check_circle"
-                    color = "yellow" if p.alerta_roja else "green"
-                    
-                    tabla_productos.rows.append(
-                        ft.DataRow(cells=[
-                            ft.DataCell(ft.Text(p.nombre)),
-                            ft.DataCell(ft.Text(str(p.stock_actual))),
-                            ft.DataCell(ft.Icon(icono, color=color)),
-                        ])
-                    )
-                txt_estado.value = "Conectado a Supabase"
+                productos = crud.obtener_productos(db) #
+                alertas_count = len([p for p in productos if p.alerta_roja]) #
+                
+                # Simulación de cálculos basados en modelos reales
+                # En un sistema completo, aquí sumarías el 'total_pedido' de models.Pedido
+                val_alertas.value = str(alertas_count)
+                val_ventas.value = f"S/ {sum(p.precio_venta * p.stock_actual for p in productos):,.2f}"
+                
+                # Actualizar Tabla de Pedidos Recientes
+                tabla_pedidos.rows.clear()
+                # Aquí podrías consultar db.query(models.Pedido)
+                
+                txt_estado.value = "🟢 Sistema en Vivo - Conectado"
                 txt_estado.color = "green"
-        except Exception as ex:
-            txt_estado.value = f"Error: No se pudo conectar a la DB"
+        except Exception as e:
+            txt_estado.value = f"🔴 Error de Conexión: {str(e)}"
             txt_estado.color = "red"
-            print(f"DEBUG ERROR: {ex}")
-        
-        prg_carga.visible = False
         page.update()
 
-    # 3. Función para disparar la carga sin bloquear la vista
-    def cargar_datos_click(e=None):
-        prg_carga.visible = True
-        txt_estado.value = "Consultando base de datos..."
-        page.update()
-        threading.Thread(target=hilo_carga_datos, daemon=True).start()
+    # --- UI COMPONENTS (Basados en tu imagen) ---
+    def crear_card_metrica(titulo, valor, icono, color_icon):
+        return ft.Container(
+            content=ft.Column([
+                ft.Row([ft.Icon(icono, color=color_icon), ft.Text(titulo, color="grey")]),
+                valor,
+            ]),
+            bgcolor="#1a1c1e", padding=20, border_radius=15, expand=True
+        )
 
-    # 4. Construir la UI básica (Esto saldrá de inmediato)
-    page.add(
+    header = ft.Row([
         ft.Column([
-            ft.Text("Smart-Liquor Dashboard", size=32, weight="bold"),
-            txt_estado,
-            prg_carga,
-            ft.Divider(),
-            ft.Container(content=tabla_productos, height=300, padding=10),
-            ft.FilledButton("Forzar Recarga", icon="refresh", on_click=cargar_datos_click)
-        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+            ft.Text("Dashboard", size=40, weight="bold"),
+            ft.Text("Smart-Liquor > Dashboard", color="orange"),
+        ]),
+        ft.Column([
+            ft.Text(datetime.now().strftime("%A, %d %B %Y"), color="grey"),
+            ft.ElevatedButton("Actualizar", icon="refresh", on_click=lambda _: threading.Thread(target=actualizar_dashboard).start())
+        ], horizontal_alignment="end")
+    ], alignment="spaceBetween")
+
+    # --- ENSAMBLAJE ---
+    page.add(
+        header,
+        ft.Divider(height=20, color="transparent"),
+        ft.Row([
+            crear_card_metrica("Total Ventas", val_ventas, "monetization_on", "green"),
+            crear_card_metrica("Pedidos Hoy", val_pedidos, "assignment", "blue"),
+            crear_card_metrica("Stock Crítico", val_alertas, "warning", "red"),
+            crear_card_metrica("Ticket Promedio", val_ticket, "analytics", "cyan"),
+        ], spacing=20),
+        ft.Divider(height=30, color="transparent"),
+        ft.Row([
+            ft.Container(
+                content=ft.Column([
+                    ft.Text("Pedidos Recientes", size=20, weight="bold"),
+                    tabla_pedidos
+                ]),
+                bgcolor="#1a1c1e", padding=20, border_radius=15, expand=2
+            ),
+            ft.Container(
+                content=ft.Column([
+                    ft.Text("Alertas Críticas", size=20, weight="bold"),
+                    ft.Text("Revisión inmediata", color="grey")
+                    # Aquí iría el componente de stock bajo
+                ]),
+                bgcolor="#1a1c1e", padding=20, border_radius=15, expand=1
+            )
+        ], alignment="start", spacing=20),
+        txt_estado
     )
 
-    page.update()
-    
-    # Lanzar la carga automática al abrir
-    cargar_datos_click()
+    # Carga inicial
+    threading.Thread(target=actualizar_dashboard, daemon=True).start()
 
 if __name__ == "__main__":
-    ft.run(main)
+    ft.app(target=main)
