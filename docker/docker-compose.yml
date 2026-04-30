@@ -1,6 +1,17 @@
 version: "3.8"
 
 services:
+  # VOLVEMOS A CREAR LA DB LOCAL PARA NO DEPENDER DE NADIE
+  db:
+    image: postgres:15-alpine
+    container_name: liquor_db
+    environment:
+      POSTGRES_USER: admin_licores
+      POSTGRES_PASSWORD: password_seguro
+      POSTGRES_DB: liquor_store
+    ports:
+      - "5432:5432"
+
   app:
     build:
       context: ..
@@ -11,8 +22,7 @@ services:
       - "8000:8000"
     env_file:
       - ../.env
+    depends_on:
+      - db  # La app ahora espera a la DB local
     volumes:
-      - ..:/app # Sincroniza tu código local con el contenedor (Hot Reload)
-
-
-# Nota: Ya no necesitamos declarar 'volumes' globales porque eliminamos 'liquor_data'
+      - ..:/app
