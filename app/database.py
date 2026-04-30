@@ -3,40 +3,48 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
-import time
-from sqlalchemy.exc import OperationalError
-# 1. Cargar variables si estamos en modo local (fuera de Docker)
+
+
+from urllib.parse import urlparse # Para analizar la URL de forma inteligente
+
+# 1. Cargar variables de entorno desde el archivo .env [cite: 50]
 load_dotenv()
 
 # 2. Leer la URL inyectada por Docker o cargada por load_dotenv
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# 3. VERIFICACIÓN CRÍTICA DE LÍDER
-if not DATABASE_URL:
-    # Esto evita que SQLAlchemy explote y te da un mensaje claro
-    print("--- ❌ ERROR CRÍTICO: No se encontró DATABASE_URL en el entorno ---")
-    print("Asegúrate de que el archivo .env exista y esté bien escrito.")
-    # Usamos una cadena vacía temporal para que el script no se cierre de golpe al importar
-    DATABASE_URL = "sqlite:///./error_fallback.db" 
 
-# 4. Crear el motor
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# 2. Configuración del motor de SQLAlchemy
+# Usamos pool_pre_ping para asegurar que la conexión no se pierda en la nube
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 def probar_conexion():
+    """
+    Verifica la conexión a la base de datos de forma dinámica.
+    No importa si es Supabase, Docker local o Azure, el sistema lo detectará.
+    """
     try:
-        with engine.connect() as connection:
-            print("--- ✅ CONEXIÓN EXITOSA A SUPABASE ---")
+
+        # Intentamos conectar
+        connection = engine.connect()
+        
+        # Extraemos el host de la URL para el log (ej. 'aws-1-sa-east-1.pooler.supabase.com')
+        parsed_url = urlparse(DATABASE_URL)
+        host_conectado = parsed_url.hostname
+        
+        print("\n" + "="*30)
+        print("🚀 --- CONEXIÓN EXITOSA ---")
+        print(f"SISTEMA: Smart-Liquor DevOps")
+        print(f"VINCULADO A: {host_conectado}")
+        print("="*30 + "\n")
+        
+        connection.close()
+        
     except Exception as e:
-        print(f"--- ❌ ERROR AL CONECTAR A SUPABASE: {e} ---")
+        print("\n" + "!"*30)
+        print("❌ --- ERROR DE CONEXIÓN ---")
+        print(f"DETALLE: {e}")
+        print("!"*30 + "\n")
 
 if __name__ == "__main__":
     probar_conexion()

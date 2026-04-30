@@ -9,20 +9,19 @@ engine = create_engine(DATABASE_URL)
 def crear_producto_real():
     print("🚀 Insertando producto en la estructura real de Smart-Liquor...")
     
-    # Datos ajustados a tus columnas: nombre, marca, precio_venta, costo_compra, stock_actual, stock_minimo, alerta_roja
+    # Nuevo producto de prueba
     nuevo_producto = {
-        "nombre": "Johnnie Walker Black Label",
-        "marca": "Johnnie Walker",
-        "precio_venta": 150.00,
-        "costo_compra": 110.00,
-        "stock_actual": 20,
-        "stock_minimo": 5,
+        "nombre": "Ron catarvio black 750ml",
+        "marca": "catarvio",
+        "precio_venta": 95.00,
+        "costo_compra": 70.00,
+        "stock_actual": 35,
+        "stock_minimo": 10,
         "alerta_roja": False
     }
 
     try:
         with engine.connect() as connection:
-            # Usamos los nombres exactos de tu imagen
             query = text("""
                 INSERT INTO productos (nombre, marca, precio_venta, costo_compra, stock_actual, stock_minimo, alerta_roja) 
                 VALUES (:nombre, :marca, :precio_venta, :costo_compra, :stock_actual, :stock_minimo, :alerta_roja)
