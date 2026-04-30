@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
-from . import models
-import enum
+import app.models as models     #
 
 # --- LÓGICA DE PRODUCTOS E INVENTARIO ---
 
@@ -21,11 +20,11 @@ def sumar_stock_producto(db: Session, producto_id: int, cantidad: int):
     if producto:
         producto.stock_actual += cantidad
         
-        # Si el nuevo stock supera el mínimo, apagamos la alerta roja
+        # Si el nuevo stock supera el mínimo, apagamos la alerta roja [cite: 107]
         if producto.stock_actual > producto.stock_minimo:
             producto.alerta_roja = False
             
-        # Registramos el movimiento para Big Data futuro
+        # Registramos el suministro [cite: 92-98]
         nuevo_suministro = models.EntradaSuministro(
             producto_id=producto_id, 
             cantidad_ingresada=cantidad
@@ -40,18 +39,18 @@ def sumar_stock_producto(db: Session, producto_id: int, cantidad: int):
 def registrar_pedido_bot(db: Session, cliente_id: int, items: list, total: float):
     """
     Esta función la usará el Bot de WhatsApp.
-    Crea el pedido en 'Recibido' y resta stock automáticamente.
+    Crea el pedido y resta stock automáticamente [cite: 101-102].
     """
     nuevo_pedido = models.Pedido(
         cliente_id=cliente_id,
         total_pedido=total,
-        estado_logistico=models.EstadoLogistico.RECIBIDO
+        estado_logistico="recibido", # Cambiado: Usamos string directo como en tu diagrama
+        estado_pago="sin pagar"      # Requisito de la Guía Maestra 
     )
     db.add(nuevo_pedido)
-    db.flush() # Para obtener el ID del pedido antes de hacer commit
+    db.flush() 
 
     for item in items:
-        # 1. Crear el detalle
         detalle = models.DetallePedido(
             pedido_id=nuevo_pedido.id,
             producto_id=item['id'],
@@ -59,7 +58,7 @@ def registrar_pedido_bot(db: Session, cliente_id: int, items: list, total: float
         )
         db.add(detalle)
 
-        # 2. Restar Stock y verificar Alerta Roja
+        # Restar Stock y verificar Alerta Roja [cite: 102, 104]
         producto = db.query(models.Producto).filter(models.Producto.id == item['id']).first()
         if producto:
             producto.stock_actual -= item['cantidad']
@@ -69,14 +68,14 @@ def registrar_pedido_bot(db: Session, cliente_id: int, items: list, total: float
     db.commit()
     return nuevo_pedido
 
-def actualizar_estado_logistico(db: Session, pedido_id: int, nuevo_estado: str):
+def actualizar_estado_pago(db: Session, pedido_id: int, nuevo_estado: str):
     """
-    Lógica de la Web para mover el pedido:
-    Recibido -> En Tránsito -> Entregado
+    Lógica de la Web para cumplir con la Guía Maestra:
+    Estados: pagado, sin pagar, medio pagado 
     """
     pedido = db.query(models.Pedido).filter(models.Pedido.id == pedido_id).first()
     if pedido:
-        pedido.estado_logistico = nuevo_estado
+        pedido.estado_pago = nuevo_estado
         db.commit()
         db.refresh(pedido)
     return pedido
@@ -84,7 +83,7 @@ def actualizar_estado_logistico(db: Session, pedido_id: int, nuevo_estado: str):
 # --- LÓGICA DE CLIENTES ---
 
 def obtener_o_crear_cliente(db: Session, telefono: str, nombre: str = None, direccion: str = None):
-    """El Bot usa esto para registrar datos de entrega del cliente"""
+    """El Bot usa esto para registrar datos de entrega del cliente [cite: 30-35]"""
     cliente = db.query(models.Cliente).filter(models.Cliente.telefono == telefono).first()
     if not cliente:
         cliente = models.Cliente(

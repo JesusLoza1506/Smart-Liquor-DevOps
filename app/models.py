@@ -1,22 +1,69 @@
-from sqlalchemy import Column, Integer, String, Float
-from sqlalchemy.orm import declarative_base
-from database import engine  # Conexión al Docker de tu equipo
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean
+from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.sql import func
+from app.database import engine # Ruta absoluta para evitar errores de parent package
 
 Base = declarative_base()
+
+# --- MODELOS ---
 
 class Producto(Base):
     __tablename__ = "productos"
     id = Column(Integer, primary_key=True, index=True)
-    nombre = Column(String)
-    stock_actual = Column(Integer)
-    stock_minimo = Column(Integer)
-    precio = Column(Float)
+    nombre = Column(String, nullable=False)
+    marca = Column(String)
+    precio_venta = Column(Float)
+    costo_compra = Column(Float)
+    stock_actual = Column(Integer, default=0)
+    stock_minimo = Column(Integer, default=10)
+    alerta_roja = Column(Boolean, default=False)
+    
+    # Relaciones
+    detalles = relationship("DetallePedido", back_populates="producto")
+
+class Cliente(Base):
+    __tablename__ = "clientes"
+    id = Column(Integer, primary_key=True, index=True)
+    telefono = Column(String, unique=True, nullable=False)
+    nombre_completo = Column(String)
+    direccion_exacta = Column(String)
+    referencia_ubicacion = Column(String)
+    
+    # Relaciones
+    pedidos = relationship("Pedido", back_populates="cliente")
 
 class Pedido(Base):
     __tablename__ = "pedidos"
     id = Column(Integer, primary_key=True, index=True)
-    cliente = Column(String)
-    estado_pedido = Column(String) # Recibido, En tránsito, Entregado
+    cliente_id = Column(Integer, ForeignKey("clientes.id"))
+    fecha_hora = Column(DateTime, server_default=func.now())
+    total_pedido = Column(Float)
+    # Campos internos según tu diagrama de Supabase
+    estado_logistico = Column(String, default="recibido")
+    estado_pago = Column(String, default="sin pagar")
+    
+    # Relaciones
+    cliente = relationship("Cliente", back_populates="pedidos")
+    items = relationship("DetallePedido", back_populates="pedido")
 
-# Esta línea es la que tus compañeros necesitan probar en GitHub
+class DetallePedido(Base):
+    __tablename__ = "detalle_pedidos"
+    id = Column(Integer, primary_key=True, index=True)
+    pedido_id = Column(Integer, ForeignKey("pedidos.id"))
+    producto_id = Column(Integer, ForeignKey("productos.id"))
+    cantidad = Column(Integer)
+    
+    # Relaciones
+    pedido = relationship("Pedido", back_populates="items")
+    producto = relationship("Producto", back_populates="detalles")
+
+class EntradaSuministro(Base):
+    __tablename__ = "suministros"
+    id = Column(Integer, primary_key=True, index=True)
+    producto_id = Column(Integer, ForeignKey("productos.id"))
+    cantidad_ingresada = Column(Integer)
+    fecha = Column(DateTime, server_default=func.now())
+
+# Crear todas las tablas en la base de datos (Supabase)
+# Esto asegura que la estructura en la nube sea idéntica a este código
 Base.metadata.create_all(bind=engine)
