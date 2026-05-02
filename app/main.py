@@ -1,30 +1,23 @@
-import threading
+import fastapi
+import flet_fastapi
 import uvicorn
-import flet as ft
-from fastapi import FastAPI
 from ui import main as build_dashboard
-from database import probar_conexion
 from database import esperar_y_crear_tablas
 
-app = FastAPI()
+app = fastapi.FastAPI()
 
-@app.get("/")
+@app.get("/api")
 def read_root():
-    return {"Smart_Liquor": "Conectado a Supabase y Operativo 🚀"}
+    return {"Smart_Liquor": "Backend Operativo vinculado a Supabase 🚀"}
 
-def run_api():
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-
-def main_flet(page: ft.Page):
-    build_dashboard(page)
-
+# Montamos la app de Flet. El modo 'async' es vital para la estabilidad
+app.mount("/", flet_fastapi.app(build_dashboard))
 
 if __name__ == "__main__":
-    # 1. Esperamos a que la DB esté lista antes de lanzar todo lo demás
+    # Esperamos la conexión a Supabase
     if esperar_y_crear_tablas():
-        # 2. Si la DB conectó, lanzamos la API y la Web
-        print("Iniciando servicios...")
-        threading.Thread(target=run_api, daemon=True).start()
-        ft.app(target=main_flet, view=ft.AppView.WEB_BROWSER, port=8502, host="0.0.0.0")
+        print("🚀 Iniciando Servidor Unificado en http://localhost:8000")
+        # Arrancamos con Uvicorn de forma nativa
+        uvicorn.run(app, host="0.0.0.0", port=8000)
     else:
-        print("El sistema no pudo iniciar debido a fallas en la Base de Datos.")
+        print("Error: No se pudo conectar a la base de datos.")
